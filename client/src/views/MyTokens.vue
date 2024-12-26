@@ -1,49 +1,40 @@
-<template>
-  <div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-2xl font-semibold text-gray-900">My Tokens</h1>
-      
-      <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div v-for="token in tokens" :key="token.id" class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <img :src="token.image" alt="Token" class="h-12 w-12 rounded-full" />
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-medium text-gray-900">{{ token.name }}</h3>
-                <p class="text-sm text-gray-500">Balance: {{ token.balance }}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <button @click="transferToken(token)" class="btn-primary w-full">
-                Transfer
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useWeb3Store } from '../stores/web3Store'
 
 const router = useRouter()
+const web3Store = useWeb3Store()
 
-// Mock data - replace with actual blockchain data
 const tokens = ref([
   {
     id: 1,
-    name: 'Sample Token',
-    balance: '1000',
-    image: 'https://via.placeholder.com/150'
+    name: 'MyToken',
+    balance: web3Store.tokenBalance,
+    image: '/token-logo.png'
   }
 ])
 
+// 监听代币余额变化
+watch(
+  () => web3Store.tokenBalance,
+  (newBalance) => {
+    tokens.value[0].balance = newBalance
+  }
+)
+
+onMounted(async () => {
+  if (web3Store.isConnected) {
+    await web3Store.updateTokenBalance()
+  }
+})
+
 function transferToken(token: any) {
+  if (!web3Store.isConnected) {
+    alert('请先连接钱包')
+    return
+  }
+  
   router.push({
     path: '/transfer',
     query: { token: token.id }
